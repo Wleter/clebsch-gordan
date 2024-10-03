@@ -228,7 +228,7 @@ impl std::fmt::Debug for PrimeFactorization {
 
 impl PrimeFactorization {
     /// Compute the prime factorization of the integer `n`
-    fn new(n: i32) -> PrimeFactorization {
+    pub fn new(n: i32) -> PrimeFactorization {
         let sign = match n.cmp(&0) {
             Ordering::Equal => {
                 return PrimeFactorization {

@@ -1,7 +1,7 @@
 [package]
-name = "wigners"
+name = "clebsch-gordan"
 version = "0.3.0"
-edition = "2018"
+edition = "2021"
 authors = ["Guillaume Fraux <guillaume.fraux@epfl.ch>"]
 repository = "https://github.com/luthaf/wigners"
 license = "MIT/Apache-2.0"
@@ -15,16 +15,12 @@ crate-type = ["rlib", "cdylib"]
 bench = false
 
 [dependencies]
-lazy_static = "1"
-smallvec = "1"
-parking_lot = "0.12"
-lru = "0.11"
-rayon = "1"
-num-bigint = "0.4"
-num-traits = "0.2"
+lazy_static = "1.5.0"
+smallvec = "1.13.2"
+parking_lot = "0.12.3"
+lru = "0.12.4"
+num-bigint = "0.4.6"
+num-traits = "0.2.19"
 
 [dev-dependencies]
 approx = "0.5"
-
-[workspace]
-members = ["benchmarks"]

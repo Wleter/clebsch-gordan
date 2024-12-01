@@ -173,23 +173,32 @@ pub fn wigner_6j(j1: u32, j2: u32, j3: u32, j4: u32, j5: u32, j6: u32) -> f64 {
         }
     });
 
-    if pairs[0].0 > pairs[0].1 {
-        swap(&mut pairs[0].0, &mut pairs[0].1);
-        if pairs[1].0 > pairs[1].1 {
-            swap(&mut pairs[1].0, &mut pairs[1].1);
-        } else if pairs[2].0 > pairs[2].1 {
-            swap(&mut pairs[2].0, &mut pairs[2].1);
+    let same_column = pairs[0].0 == pairs[0].1
+        || pairs[1].0 == pairs[1].1
+        || pairs[2].0 == pairs[2].1;
+
+    if same_column {
+        if pairs[0].0 > pairs[0].1 {
+            swap(&mut pairs[0].0, &mut pairs[0].1);
         }
-    } else if pairs[0].0 == pairs[0].1 {
         if pairs[1].0 > pairs[1].1 {
             swap(&mut pairs[1].0, &mut pairs[1].1);
         }
         if pairs[2].0 > pairs[2].1 {
             swap(&mut pairs[2].0, &mut pairs[2].1);
         }
-    } else if pairs[1].0 > pairs[1].1 {
-        swap(&mut pairs[1].0, &mut pairs[1].1);
-        swap(&mut pairs[2].0, &mut pairs[2].1);
+    } else {
+        if pairs[0].0 > pairs[0].1 {
+            swap(&mut pairs[0].0, &mut pairs[0].1);
+            if pairs[1].0 > pairs[1].1 {
+                swap(&mut pairs[1].0, &mut pairs[1].1);
+            } else {
+                swap(&mut pairs[2].0, &mut pairs[2].1);
+            }
+        } else if pairs[1].0 > pairs[1].1 {
+            swap(&mut pairs[1].0, &mut pairs[1].1);
+            swap(&mut pairs[2].0, &mut pairs[2].1);
+        }
     }
 
     let j1 = pairs[0].0;
@@ -418,5 +427,6 @@ mod tests {
         assert_ulps_eq!(wigner_6j(8,8,8,8,8,8), -0.01265208072315355);
         assert_ulps_eq!(wigner_6j(3,3,3,3,3,3), -1. / 14.);
         assert_ulps_eq!(wigner_6j(5,5,5,5,5,5), 1. / 52.);
+        assert_ulps_eq!(wigner_6j(1,2,3,3,2,1), f64::sqrt(14.) / 35.);
     }
 }

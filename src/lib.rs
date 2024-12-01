@@ -1,6 +1,7 @@
 mod primes;
 mod rational;
 
+use std::mem::swap;
 use std::num::NonZeroUsize;
 
 use parking_lot::Mutex;
@@ -24,11 +25,21 @@ lazy_static::lazy_static!(
     );
 );
 
+// cache up to that many wigner_3j symbols in a LRU cache with 20_000 entries.
+const WIGNER_6J_CACHE_SIZE: usize = 20_000;
+
+type Wigner6jCacheKey = (u32, u32, u32, u32, u32, u32);
+lazy_static::lazy_static!(
+    static ref CACHED_WIGNER_6J: Mutex<LruCache<Wigner6jCacheKey, f64>> = Mutex::new(
+        LruCache::new(NonZeroUsize::new(WIGNER_6J_CACHE_SIZE).expect("cache size is zero"))
+    );
+);
+
 pub fn clear_wigner_3j_cache() {
     CACHED_WIGNER_3J.lock().clear();
 }
 
-/// Compute the Wigner 3j coefficient for the given `dj1`, `dj2`, `dj2`, `dm1`,
+/// Compute the Wigner 3j coefficient for the given `dj1`, `dj2`, `dj3`, `dm1`,
 /// `dm2`, `dm3`.
 pub fn wigner_3j(dj1: u32, dj2: u32, dj3: u32, dm1: i32, dm2: i32, dm3: i32) -> f64 {
     if dm1.unsigned_abs() > dj1 {
@@ -134,6 +145,109 @@ pub fn clebsch_gordan(dj1: u32, dm1: i32, dj2: u32, dm2: i32, dj3: u32, dm3: i32
     } else {
         return w3j;
     }
+}
+
+/// Compute the Wigner 6j coefficient for the given `j1`, `j2`, `j3`, `j4`,
+/// `j5`, `j6`.
+pub fn wigner_6j(j1: u32, j2: u32, j3: u32, j4: u32, j5: u32, j6: u32) -> f64 {
+    if !triangle_condition(j1, j2, j3) 
+        || !triangle_condition(j1, j5, j6)
+        || !triangle_condition(j4, j2, j6)
+        || !triangle_condition(j4, j5, j3) 
+    {
+        return 0.0;
+    }
+
+    let mut pairs = [(j1, j4), (j2, j5), (j3, j6)];
+
+    pairs.sort_by(|a, b| {
+        let min_a = a.0.min(a.1);
+        let min_b = b.0.min(b.1);
+        let max_a = a.0.max(a.1);
+        let max_b = b.0.max(b.1);
+
+        if min_a == min_b {
+            max_a.cmp(&max_b)
+        } else {
+            min_a.cmp(&min_b)
+        }
+    });
+
+    if pairs[0].0 > pairs[0].1 {
+        swap(&mut pairs[0].0, &mut pairs[0].1);
+        if pairs[1].0 > pairs[1].1 {
+            swap(&mut pairs[1].0, &mut pairs[1].1);
+        } else if pairs[2].0 > pairs[2].1 {
+            swap(&mut pairs[2].0, &mut pairs[2].1);
+        }
+    } else if pairs[0].0 == pairs[0].1 {
+        if pairs[1].0 > pairs[1].1 {
+            swap(&mut pairs[1].0, &mut pairs[1].1);
+        }
+        if pairs[2].0 > pairs[2].1 {
+            swap(&mut pairs[2].0, &mut pairs[2].1);
+        }
+    } else if pairs[1].0 > pairs[1].1 {
+        swap(&mut pairs[1].0, &mut pairs[1].1);
+        swap(&mut pairs[2].0, &mut pairs[2].1);
+    }
+
+    let j1 = pairs[0].0;
+    let j2 = pairs[1].0;
+    let j3 = pairs[2].0;
+    let j4 = pairs[0].1;
+    let j5 = pairs[1].1;
+    let j6 = pairs[2].1;
+
+    {
+        let mut cache = CACHED_WIGNER_6J.lock();
+        if let Some(&cached_value) = cache.get(&(j1, j2, j3, j4, j5, j6)) {
+            return cached_value;
+        }
+    }
+
+    let j1 = j1 as i32;
+    let j2 = j2 as i32;
+    let j3 = j3 as i32;
+    let j4 = j4 as i32;
+    let j5 = j5 as i32;
+    let j6 = j6 as i32;
+
+    let mut result = 0.0;
+    for m1 in -j1..=j1 {
+        for m2 in -j2..=j2 {
+            for m3 in -j3..=j3 {
+                for m4 in -j4..=j4 {
+                    for m5 in -j5..=j5 {
+                        for m6 in -j6..=j6 {
+                            if m1 + m2 + m3 != 0
+                                || m1 - m5 + m6 != 0
+                                || m4 + m2 - m6 != 0
+                                || -m4 + m5 + m3 != 0
+                            {
+                                continue;
+                            }
+                            let power = j1 + j2 + j3 + j4 + j5 + j6 - m1 - m2 - m3 - m4 - m5 - m6;
+
+                            let first = wigner_3j(2 * j1 as u32, 2 * j2 as u32, 2 * j3 as u32, -2 * m1, -2 * m2, -2 * m3);
+                            let second = wigner_3j(2 * j1 as u32, 2 * j5 as u32, 2 * j6 as u32, 2 * m1, -2 * m5, 2 * m6);
+                            let third = wigner_3j(2 * j4 as u32, 2 * j2 as u32, 2 * j6 as u32, 2 * m4, 2 * m2, -2 * m6);
+                            let fourth = wigner_3j(2 * j4 as u32, 2 * j5 as u32, 2 * j3 as u32, -2 * m4, 2 * m5, 2 * m3);
+
+                            result += (-1.0f64).powi(power) * first * second * third * fourth;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    {
+        let mut cache = CACHED_WIGNER_6J.lock();
+        cache.put((j1 as u32, j2 as u32, j3 as u32, j4 as u32, j5 as u32, j6 as u32), result);
+    }
+
+    result
 }
 
 /// check the triangle condition on j1, j2, j3, i.e. `|j1 - j2| <= j3 <= j1 + j2`
@@ -297,5 +411,12 @@ mod tests {
         assert_ulps_eq!(clebsch_gordan(5, 3, 4, 2, 5, 5), -f64::sqrt(3. / 7.));
         assert_ulps_eq!(clebsch_gordan(5, 3, 3, 1, 6, 4), f64::sqrt(1. / 12.));
         assert_ulps_eq!(clebsch_gordan(5, 3, 3, 1, 4, 4), -f64::sqrt(8. / 21.));
+    }
+
+    #[test]
+    fn test_wigner6j() {
+        assert_ulps_eq!(wigner_6j(8,8,8,8,8,8), -0.01265208072315355);
+        assert_ulps_eq!(wigner_6j(3,3,3,3,3,3), -1. / 14.);
+        assert_ulps_eq!(wigner_6j(5,5,5,5,5,5), 1. / 52.);
     }
 }

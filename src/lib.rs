@@ -1,9 +1,9 @@
 mod primes;
 mod rational;
 
-use std::mem::swap;
 use std::num::NonZeroUsize;
 
+use num_rational::BigRational;
 use parking_lot::Mutex;
 
 use lru::LruCache;
@@ -158,102 +158,47 @@ pub fn wigner_6j(j1: u32, j2: u32, j3: u32, j4: u32, j5: u32, j6: u32) -> f64 {
         return 0.0;
     }
 
-    let mut pairs = [(j1, j4), (j2, j5), (j3, j6)];
+    let a1 = j1 + j2 + j3;
+    let a2 = j1 + j6 + j5;
+    let a3 = j2 + j4 + j6;
+    let a4 = j3 + j4 + j5;
+    let b1 = j1 + j2 + j4 + j5;
+    let b2 = j1 + j3 + j4 + j6;
+    let b3 = j2 + j3 + j5 + j6;
 
-    pairs.sort_by(|a, b| {
-        let min_a = a.0.min(a.1);
-        let min_b = b.0.min(b.1);
-        let max_a = a.0.max(a.1);
-        let max_b = b.0.max(b.1);
-
-        if min_a == min_b {
-            max_a.cmp(&max_b)
-        } else {
-            min_a.cmp(&min_b)
-        }
-    });
-
-    let same_column = pairs[0].0 == pairs[0].1
-        || pairs[1].0 == pairs[1].1
-        || pairs[2].0 == pairs[2].1;
-
-    if same_column {
-        if pairs[0].0 > pairs[0].1 {
-            swap(&mut pairs[0].0, &mut pairs[0].1);
-        }
-        if pairs[1].0 > pairs[1].1 {
-            swap(&mut pairs[1].0, &mut pairs[1].1);
-        }
-        if pairs[2].0 > pairs[2].1 {
-            swap(&mut pairs[2].0, &mut pairs[2].1);
-        }
-    } else {
-        if pairs[0].0 > pairs[0].1 {
-            swap(&mut pairs[0].0, &mut pairs[0].1);
-            if pairs[1].0 > pairs[1].1 {
-                swap(&mut pairs[1].0, &mut pairs[1].1);
-            } else {
-                swap(&mut pairs[2].0, &mut pairs[2].1);
-            }
-        } else if pairs[1].0 > pairs[1].1 {
-            swap(&mut pairs[1].0, &mut pairs[1].1);
-            swap(&mut pairs[2].0, &mut pairs[2].1);
-        }
-    }
-
-    let j1 = pairs[0].0;
-    let j2 = pairs[1].0;
-    let j3 = pairs[2].0;
-    let j4 = pairs[0].1;
-    let j5 = pairs[1].1;
-    let j6 = pairs[2].1;
+    let (b1, b2, b3, a1, a2, a3, a4) = reorder6j(b1, b2, b3, a1, a2, a3, a4);
 
     {
         let mut cache = CACHED_WIGNER_6J.lock();
-        if let Some(&cached_value) = cache.get(&(j1, j2, j3, j4, j5, j6)) {
+        if let Some(&cached_value) = cache.get(&(b1, b2, b3, a1, a2, a3)) {
             return cached_value;
         }
     }
 
-    let j1 = j1 as i32;
-    let j2 = j2 as i32;
-    let j3 = j3 as i32;
-    let j4 = j4 as i32;
-    let j5 = j5 as i32;
-    let j6 = j6 as i32;
+    let mut ratio = triangle_coefficient(2 * j1, 2 * j2, 2 * j3);
+    ratio *= triangle_coefficient(2 * j1, 2 * j6, 2 * j5);
+    ratio *= triangle_coefficient(2 * j2, 2 * j4, 2 * j6);
+    ratio *= triangle_coefficient(2 * j3, 2 * j4, 2 * j5);
 
-    let mut result = 0.0;
-    for m1 in -j1..=j1 {
-        for m2 in -j2..=j2 {
-            for m3 in -j3..=j3 {
-                for m4 in -j4..=j4 {
-                    for m5 in -j5..=j5 {
-                        for m6 in -j6..=j6 {
-                            if m1 + m2 + m3 != 0
-                                || m1 - m5 + m6 != 0
-                                || m4 + m2 - m6 != 0
-                                || -m4 + m5 + m3 != 0
-                            {
-                                continue;
-                            }
-                            let power = j1 + j2 + j3 + j4 + j5 + j6 - m1 - m2 - m3 - m4 - m5 - m6;
+    let (series_numerator, series_denominator) = compute_6j_series(b1 as i32, b2 as i32, b3 as i32, a1 as i32, a2 as i32, a3 as i32, a4 as i32);
 
-                            let first = wigner_3j(2 * j1 as u32, 2 * j2 as u32, 2 * j3 as u32, -2 * m1, -2 * m2, -2 * m3);
-                            let second = wigner_3j(2 * j1 as u32, 2 * j5 as u32, 2 * j6 as u32, 2 * m1, -2 * m5, 2 * m6);
-                            let third = wigner_3j(2 * j4 as u32, 2 * j2 as u32, 2 * j6 as u32, 2 * m4, 2 * m2, -2 * m6);
-                            let fourth = wigner_3j(2 * j4 as u32, 2 * j5 as u32, 2 * j3 as u32, -2 * m4, 2 * m5, 2 * m3);
+    let series_denominator = Rational::new(PrimeFactorization::one(), series_denominator);
+    ratio *= &series_denominator;
+    ratio *= &series_denominator;
+    ratio.simplify();
 
-                            result += (-1.0f64).powi(power) * first * second * third * fourth;
-                        }
-                    }
-                }
-            }
-        }
-    }
+    let (s_num, r_num) = ratio.numerator.split_square();
+    let (s_den, r_den) = ratio.denominator.split_square();
+
+    let s = BigRational::new(s_num.as_bigint() * series_numerator, s_den.as_bigint());
+    let r = Rational::new(r_num, r_den);
+
+    let result = s.to_f64().expect("Too large value to convert to f64 in wigner6j")
+        * r.numerator.as_sqrt() / r.denominator.as_sqrt();
 
     {
         let mut cache = CACHED_WIGNER_6J.lock();
-        cache.put((j1 as u32, j2 as u32, j3 as u32, j4 as u32, j5 as u32, j6 as u32), result);
+        cache.put((b1, b2, b3, a1, a2, a3), result);
     }
 
     result
@@ -281,9 +226,25 @@ fn reorder3j(dj1: u32, dj2: u32, dj3: u32, dm1: i32, dm2: i32, dm3: i32, mut sig
     }
 }
 
+fn reorder6j(b1: u32, b2: u32, b3: u32, a1: u32, a2: u32, a3: u32, a4: u32) -> (u32, u32, u32, u32, u32, u32, u32){
+    if b1 < b2 {
+        reorder6j(b2, b1, b3, a1, a2, a3, a4)
+    } else if b2 < b3 {
+        reorder6j(b1, b3, b2, a1, a2, a3, a4)
+    } else if a1 < a2 {
+        reorder6j(b1, b2, b3, a2, a1, a3, a4)
+    } else if a2 < a3 {
+        reorder6j(b1, b2, b3, a1, a3, a2, a4)
+    } else if a3 < a4 {
+        reorder6j(b1, b2, b3, a1, a2, a4, a3)
+    } else {
+        return (b1, b2, b3, a1, a2, a3, a4)
+    }
+}
+
 fn triangle_coefficient(dj1: u32, dj2: u32, dj3: u32) -> Rational {
     let n1 = factorial((dj1 + dj2 - dj3) / 2);
-    let n2 = factorial((dj1 - dj2 + dj3) / 2);
+    let n2 = factorial((dj1 + dj3 - dj2) / 2);
     let n3 = factorial((dj2 + dj3 - dj1) / 2);
     let numerator = n1 * n2 * n3;
     let denominator = factorial((dj1 + dj2 + dj3) / 2 + 1);
@@ -357,6 +318,54 @@ fn compute_3j_series(total_j: u32, beta1: i32, beta2: i32, beta3: i32, alpha1: i
     return (numerator, denominator);
 }
 
+fn compute_6j_series(b1: i32, b2: i32, b3: i32, a1: i32, a2: i32, a3: i32, a4: i32) -> (BigInt, PrimeFactorization) {
+    let range = max(a1, a2, a3).max(a4)..(min(b1, b2, b3) + 1);
+
+    let mut numerators = Vec::with_capacity(range.len());
+    let mut denominators = Vec::with_capacity(range.len());
+    for k in range {
+        let mut numerator = if k % 2 == 0 {
+            PrimeFactorization::one()
+        } else {
+            PrimeFactorization::minus_one()
+        };
+        numerator *= factorial(k as u32 + 1);
+        numerators.push(numerator);
+
+        assert!((k - a1) >= 0);
+        let mut denominator = factorial((k - a1) as u32);
+
+        debug_assert!((k - a2) >= 0);
+        denominator *= factorial((k - a2) as u32);
+
+        debug_assert!((k - a3) >= 0);
+        denominator *= factorial((k - a3) as u32);
+        
+        debug_assert!((k - a4) >= 0);
+        denominator *= factorial((k - a4) as u32);
+
+        debug_assert!((b1 - k) >= 0);
+        denominator *= factorial((b1 - k) as u32);
+
+        debug_assert!((b2 - k) >= 0);
+        denominator *= factorial((b2 - k) as u32);
+
+        debug_assert!((b3 - k) >= 0);
+        denominator *= factorial((b3 - k) as u32);
+
+        denominators.push(denominator);
+    }
+
+    let denominator = common_denominator(&mut numerators, &denominators);
+
+    let mut numerator = BigInt::from(0);
+    for num in numerators {
+        numerator += num.as_bigint();
+    }
+
+    return (numerator, denominator);
+}
+
 /// Given a list of numerators and denominators, compute the common denominator
 /// and the rescaled numerator, putting all fractions at the same common
 /// denominator
@@ -424,9 +433,11 @@ mod tests {
 
     #[test]
     fn test_wigner6j() {
-        assert_ulps_eq!(wigner_6j(8,8,8,8,8,8), -0.01265208072315355);
+        assert_ulps_eq!(wigner_6j(1,1,1,1,1,1), 1. / 6.);
+        assert_ulps_eq!(wigner_6j(1,2,3,3,2,1), f64::sqrt(14.) / 35.);
         assert_ulps_eq!(wigner_6j(3,3,3,3,3,3), -1. / 14.);
         assert_ulps_eq!(wigner_6j(5,5,5,5,5,5), 1. / 52.);
-        assert_ulps_eq!(wigner_6j(1,2,3,3,2,1), f64::sqrt(14.) / 35.);
+        assert_ulps_eq!(wigner_6j(8,8,8,8,8,8), -0.01265208072315355);
+        assert_ulps_eq!(wigner_6j(64, 10, 64, 64, 0, 64), 1. / 129.);
     }
 }

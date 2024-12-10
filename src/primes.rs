@@ -262,9 +262,9 @@ impl PrimeFactorization {
             }
         }
 
-        return PrimeFactorization {
+        PrimeFactorization {
             sign, factors
-        };
+        }
     }
 
     /// Get the prime factorization of 1
@@ -313,7 +313,7 @@ impl PrimeFactorization {
         for (prime, &power) in primes().map(|p| p as f64).zip(&self.factors) {
             result *= prime.powi(power as i32);
         }
-        return result;
+        result
     }
 
     pub fn as_bigint(&self) -> BigInt {
@@ -321,7 +321,30 @@ impl PrimeFactorization {
         for (prime, &power) in primes().zip(&self.factors) {
             result *= BigInt::from(prime).pow(power as u32);
         }
-        return result;
+        result
+    }
+
+    pub fn split_square(&self) -> (PrimeFactorization, PrimeFactorization) {
+        let r = PrimeFactorization {
+            sign: self.sign,
+            factors: self.factors.iter().map(|p| p & 1).collect(),
+        };
+
+        let s = PrimeFactorization {
+            sign: self.sign,
+            factors: self.factors.iter().map(|p| p >> 1).collect(),
+        };
+        
+        (s, r)
+    }
+
+    /// Get the value of this prime factorization as a floating point number
+    pub fn as_sqrt(&self) -> f64 {
+        let mut result = self.sign as f64;
+        for (prime, &power) in primes().map(|p| p as f64).zip(&self.factors) {
+            result *= prime.powf(power as f64 / 2.);
+        }
+        result
     }
 }
 
@@ -386,7 +409,7 @@ impl std::ops::Div for PrimeFactorization {
 
     fn div(mut self, rhs: Self) -> Self::Output {
         self /= rhs;
-        return self;
+        self
     }
 }
 
@@ -435,10 +458,10 @@ fn compute_factorial(n : u32) -> PrimeFactorization {
         }
     }
 
-    return PrimeFactorization {
+    PrimeFactorization {
         sign: 1,
         factors: factors
-    };
+    }
 }
 
 #[cfg(test)]

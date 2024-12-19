@@ -1,9 +1,19 @@
 use core::fmt;
 use std::ops::{Add, AddAssign, Neg, Sub, SubAssign};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct HalfI32 {
     doubled: i32
+}
+
+impl std::fmt::Debug for HalfI32 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.doubled & 1 == 0 {
+            write!(f, "HalfI32: {}", self.doubled / 2)
+        } else {
+            write!(f, "HalfI32: {}/2", self.doubled)
+        }
+    }
 }
 
 impl fmt::Display for HalfI32 {
@@ -68,9 +78,19 @@ impl Neg for HalfI32 {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct HalfU32 {
     doubled: u32
+}
+
+impl std::fmt::Debug for HalfU32 {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if self.doubled & 1 == 0 {
+            write!(f, "HalfU32: {}", self.doubled / 2)
+        } else {
+            write!(f, "HalfU32: {}/2", self.doubled)
+        }
+    }
 }
 
 impl fmt::Display for HalfU32 {

@@ -160,25 +160,33 @@ impl Sum for HalfU32 {
 #[macro_export]
 macro_rules! half_i32 {
     // Case for whole numbers
-    ($value:literal) => {
+    ($value:literal) => {{
+        use $crate::half_integer::HalfI32;
+
         HalfI32::from_doubled(2 * $value)
-    };
+    }};
     // Case for fractions like 5/2
-    ($numerator:literal / 2) => {
+    ($numerator:literal / 2) => {{
+        use $crate::half_integer::HalfI32;
+
         HalfI32::from_doubled(($numerator))
-    };
+    }};
 }
 
 #[macro_export]
 macro_rules! half_u32 {
     // Case for whole numbers
-    ($value:literal) => {
+    ($value:literal) => {{
+        use $crate::half_integer::HalfU32;
+
         HalfU32::from_doubled(2 * $value)
-    };
+    }};
     // Case for fractions like 5/2
-    ($numerator:literal / 2) => {
+    ($numerator:literal / 2) => {{
+        use $crate::half_integer::HalfU32;
+
         HalfU32::from_doubled(($numerator))
-    };
+    }};
 }
 
 impl From<HalfI32> for HalfU32 {
@@ -195,7 +203,6 @@ impl From<HalfU32> for HalfI32 {
 
 #[cfg(test)]
 mod test {
-    use super::{HalfI32, HalfU32};
     #[test]
     fn test_half_integers() {
         let spin1 = half_i32!(3);

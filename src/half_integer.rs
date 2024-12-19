@@ -1,5 +1,5 @@
 use core::fmt;
-use std::ops::{Add, AddAssign, Neg, Sub, SubAssign};
+use std::{iter::Sum, ops::{Add, AddAssign, Neg, Sub, SubAssign}};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct HalfI32 {
@@ -59,6 +59,12 @@ impl Sub for HalfI32 {
 impl AddAssign for HalfI32 {
     fn add_assign(&mut self, rhs: Self) {
         self.doubled += rhs.doubled;
+    }
+}
+
+impl Sum for HalfI32 {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(HalfI32::from_doubled(0), |acc, x| acc + x)
     }
 }
 
@@ -142,6 +148,12 @@ impl AddAssign for HalfU32 {
 impl SubAssign for HalfU32 {
     fn sub_assign(&mut self, rhs: Self) {
         self.doubled -= rhs.doubled;
+    }
+}
+
+impl Sum for HalfU32 {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(HalfU32::from_doubled(0), |acc, x| acc + x)
     }
 }
 

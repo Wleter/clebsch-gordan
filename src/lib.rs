@@ -149,22 +149,22 @@ pub fn clebsch_gordan(dj1: u32, dm1: i32, dj2: u32, dm2: i32, dj3: u32, dm3: i32
 
 /// Compute the Wigner 6j coefficient for the given `j1`, `j2`, `j3`, `j4`,
 /// `j5`, `j6`.
-pub fn wigner_6j(j1: u32, j2: u32, j3: u32, j4: u32, j5: u32, j6: u32) -> f64 {
-    if !triangle_condition(j1, j2, j3) 
-        || !triangle_condition(j1, j5, j6)
-        || !triangle_condition(j4, j2, j6)
-        || !triangle_condition(j4, j5, j3) 
+pub fn wigner_6j(dj1: u32, dj2: u32, dj3: u32, dj4: u32, dj5: u32, dj6: u32) -> f64 {
+    if !triangle_condition(dj1, dj2, dj3) 
+        || !triangle_condition(dj1, dj5, dj6)
+        || !triangle_condition(dj4, dj2, dj6)
+        || !triangle_condition(dj4, dj5, dj3) 
     {
         return 0.0;
     }
 
-    let a1 = j1 + j2 + j3;
-    let a2 = j1 + j6 + j5;
-    let a3 = j2 + j4 + j6;
-    let a4 = j3 + j4 + j5;
-    let b1 = j1 + j2 + j4 + j5;
-    let b2 = j1 + j3 + j4 + j6;
-    let b3 = j2 + j3 + j5 + j6;
+    let a1 = (dj1 + dj2 + dj3) / 2;
+    let a2 = (dj1 + dj6 + dj5) / 2;
+    let a3 = (dj2 + dj4 + dj6) / 2;
+    let a4 = (dj3 + dj4 + dj5) / 2;
+    let b1 = (dj1 + dj2 + dj4 + dj5) / 2;
+    let b2 = (dj1 + dj3 + dj4 + dj6) / 2;
+    let b3 = (dj2 + dj3 + dj5 + dj6) / 2;
 
     let (b1, b2, b3, a1, a2, a3, a4) = reorder6j(b1, b2, b3, a1, a2, a3, a4);
 
@@ -175,10 +175,10 @@ pub fn wigner_6j(j1: u32, j2: u32, j3: u32, j4: u32, j5: u32, j6: u32) -> f64 {
         }
     }
 
-    let mut ratio = triangle_coefficient(2 * j1, 2 * j2, 2 * j3);
-    ratio *= triangle_coefficient(2 * j1, 2 * j6, 2 * j5);
-    ratio *= triangle_coefficient(2 * j2, 2 * j4, 2 * j6);
-    ratio *= triangle_coefficient(2 * j3, 2 * j4, 2 * j5);
+    let mut ratio = triangle_coefficient(dj1, dj2, dj3);
+    ratio *= triangle_coefficient(dj1, dj6, dj5);
+    ratio *= triangle_coefficient(dj2, dj4, dj6);
+    ratio *= triangle_coefficient(dj3, dj4, dj5);
 
     let (series_numerator, series_denominator) = compute_6j_series(b1 as i32, b2 as i32, b3 as i32, a1 as i32, a2 as i32, a3 as i32, a4 as i32);
 
@@ -206,7 +206,7 @@ pub fn wigner_6j(j1: u32, j2: u32, j3: u32, j4: u32, j5: u32, j6: u32) -> f64 {
 
 /// check the triangle condition on j1, j2, j3, i.e. `|j1 - j2| <= j3 <= j1 + j2`
 fn triangle_condition(dj1: u32, dj2: u32, dj3: u32) -> bool {
-    return (dj3 <= dj1 + dj2) && (dj1 <= dj2 + dj3) && (dj2 <= dj3 + dj1);
+    return (dj3 <= dj1 + dj2) && (dj1 <= dj2 + dj3) && (dj2 <= dj3 + dj1) && (dj1 + dj2 + dj3) % 2 == 0;
 }
 
 // reorder j1/m1, j2/m2, j3/m3 such that j1 >= j2 >= j3 and m1 >= 0 or m1 == 0 && m2 >= 0
@@ -433,11 +433,12 @@ mod tests {
 
     #[test]
     fn test_wigner6j() {
-        assert_ulps_eq!(wigner_6j(1,1,1,1,1,1), 1. / 6.);
-        assert_ulps_eq!(wigner_6j(1,2,3,3,2,1), f64::sqrt(14.) / 35.);
-        assert_ulps_eq!(wigner_6j(3,3,3,3,3,3), -1. / 14.);
-        assert_ulps_eq!(wigner_6j(5,5,5,5,5,5), 1. / 52.);
-        assert_ulps_eq!(wigner_6j(8,8,8,8,8,8), -0.01265208072315355);
-        assert_ulps_eq!(wigner_6j(64, 10, 64, 64, 0, 64), 1. / 129.);
+        assert_ulps_eq!(wigner_6j(2,2,2,2,2,2), 1. / 6.);
+        assert_ulps_eq!(wigner_6j(2,4,6,6,4,2), f64::sqrt(14.) / 35.);
+        assert_ulps_eq!(wigner_6j(6,6,6,6,6,6), -1. / 14.);
+        assert_ulps_eq!(wigner_6j(10,10,10,10,10,10), 1. / 52.);
+        assert_ulps_eq!(wigner_6j(16,16,16,16,16,16), -0.01265208072315355);
+        assert_ulps_eq!(wigner_6j(128, 20, 128, 128, 0, 128), 1. / 129.);
+        assert_ulps_eq!(wigner_6j(1, 2, 1, 1, 0, 1), 0.5);
     }
 }

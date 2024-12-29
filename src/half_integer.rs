@@ -92,9 +92,9 @@ pub struct HalfU32 {
 impl std::fmt::Debug for HalfU32 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if self.doubled & 1 == 0 {
-            write!(f, "HalfU32: {}", self.doubled / 2)
+            write!(f, "{}", self.doubled / 2)
         } else {
-            write!(f, "HalfU32: {}/2", self.doubled)
+            write!(f, "{}/2", self.doubled)
         }
     }
 }

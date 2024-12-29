@@ -9,9 +9,9 @@ pub struct HalfI32 {
 impl std::fmt::Debug for HalfI32 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.doubled & 1 == 0 {
-            write!(f, "HalfI32: {}", self.doubled / 2)
+            write!(f, "{}", self.doubled / 2)
         } else {
-            write!(f, "HalfI32: {}/2", self.doubled)
+            write!(f, "{}/2", self.doubled)
         }
     }
 }

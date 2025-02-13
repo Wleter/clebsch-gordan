@@ -51,23 +51,23 @@ pub fn wigner_3j(j1: HalfU32, j2: HalfU32, j3: HalfU32, m1: HalfI32, m2: HalfI32
     let dm3 = m3.double_value();
 
     if dm1.unsigned_abs() > dj1 {
-        panic!("invalid dj1/dm1 in wigner3j: {}/{}", dj1, dm1);
+        return 0.0;
     } else if dm2.unsigned_abs() > dj2 {
-        panic!("invalid dj2/dm2 in wigner3j: {}/{}", dj2, dm2);
+        return 0.0;
     } else if dm3.unsigned_abs() > dj3 {
-        panic!("invalid dj3/dm3 in wigner3j: {}/{}", dj3, dm3);
+        return 0.0;
     }
 
     if (dj1 & 1 == 0) ^ (dm1 & 1 == 0) {
-        panic!("invalid dj1/m1 in wigner3j: {}/{}", dj1, dm1)
+        return 0.0;
     } else if (dj2 & 1 == 0) ^ (dm2 & 1 == 0) {
-        panic!("invalid dj2/m2 in wigner3j: {}/{}", dj2, dm2)
+        return 0.0;
     } else if (dj3 & 1 == 0) ^ (dm3 & 1 == 0) {
-        panic!("invalid dj3/m3 in wigner3j: {}/{}", dj3, dm3)
+        return 0.0;
     }
 
     if (dj1 + dj2 + dj3) & 1 == 1 {
-        panic!("non compatible spins {dj1} {dj2} {dj3}")
+        return 0.0;
     }
 
     if !triangle_condition(dj1, dj2, dj3) || dm1 + dm2 + dm3 != 0 {

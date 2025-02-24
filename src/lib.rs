@@ -418,39 +418,39 @@ mod tests {
     fn test_wigner3j() {
         // checked against sympy
         assert_ulps_eq!(
-            wigner_3j(half_u32!(2), half_u32!(6), half_u32!(4), 
-                      half_i32!(0), half_i32!(0), half_i32!(2)), 
+            wigner_3j(hu32!(2), hu32!(6), hu32!(4), 
+                      hi32!(0), hi32!(0), hi32!(2)), 
             0.0
         );
         assert_ulps_eq!(
-            wigner_3j(half_u32!(2), half_u32!(6), half_u32!(4), 
-                      half_i32!(0), half_i32!(0), half_i32!(0)), 
+            wigner_3j(hu32!(2), hu32!(6), hu32!(4), 
+                      hi32!(0), hi32!(0), hi32!(0)), 
             f64::sqrt(715.0) / 143.0
         );
         assert_ulps_eq!(
-            wigner_3j(half_u32!(5), half_u32!(3), half_u32!(2), 
-                      half_i32!(-3), half_i32!(3), half_i32!(0)), 
+            wigner_3j(hu32!(5), hu32!(3), hu32!(2), 
+                      hi32!(-3), hi32!(3), hi32!(0)), 
             f64::sqrt(330.0) / 165.0
         );
         assert_ulps_eq!(
-            wigner_3j(half_u32!(5), half_u32!(3), half_u32!(2), 
-                      half_i32!(-2), half_i32!(3), half_i32!(-1)), 
+            wigner_3j(hu32!(5), hu32!(3), hu32!(2), 
+                      hi32!(-2), hi32!(3), hi32!(-1)), 
             -f64::sqrt(330.0) / 330.0
         );
         assert_ulps_eq!(
-            wigner_3j(half_u32!(100), half_u32!(100), half_u32!(100), 
-                      half_i32!(100), half_i32!(-100), half_i32!(0)), 
+            wigner_3j(hu32!(100), hu32!(100), hu32!(100), 
+                      hi32!(100), hi32!(-100), hi32!(0)), 
             2.689688852311291e-13
         );
         assert_ulps_eq!(
-            wigner_3j(half_u32!(0), half_u32!(1), half_u32!(1), 
-                      half_i32!(0), half_i32!(0), half_i32!(0)),
+            wigner_3j(hu32!(0), hu32!(1), hu32!(1), 
+                      hi32!(0), hi32!(0), hi32!(0)),
             -0.5773502691896257
         );
         // https://github.com/Luthaf/wigners/issues/7
         assert_ulps_eq!(
-            wigner_3j(half_u32!(100), half_u32!(300), half_u32!(285), 
-                      half_i32!(2), half_i32!(-2), half_i32!(0)), 
+            wigner_3j(hu32!(100), hu32!(300), hu32!(285), 
+                      hi32!(2), hi32!(-2), hi32!(0)), 
             0.001979165708981953
         );
     }
@@ -459,64 +459,64 @@ mod tests {
     fn test_clebsch_gordan() {
         // checked against sympy
         assert_ulps_eq!(
-            clebsch_gordan(half_u32!(2), half_i32!(0), 
-                           half_u32!(6), half_i32!(0), 
-                           half_u32!(4), half_i32!(1)), 
+            clebsch_gordan(hu32!(2), hi32!(0), 
+                           hu32!(6), hi32!(0), 
+                           hu32!(4), hi32!(1)), 
             0.0
         );
         assert_ulps_eq!(
-            clebsch_gordan(half_u32!(1), half_i32!(1), 
-                           half_u32!(1), half_i32!(1), 
-                           half_u32!(2), half_i32!(2)), 
+            clebsch_gordan(hu32!(1), hi32!(1), 
+                           hu32!(1), hi32!(1), 
+                           hu32!(2), hi32!(2)), 
             1.0
         );
         assert_ulps_eq!(
-            clebsch_gordan(half_u32!(2), half_i32!(2), 
-                           half_u32!(1), half_i32!(-1), 
-                           half_u32!(3), half_i32!(1)), 
+            clebsch_gordan(hu32!(2), hi32!(2), 
+                           hu32!(1), hi32!(-1), 
+                           hu32!(3), hi32!(1)), 
             f64::sqrt(1.0 / 15.0)
         );
         // half spins
         assert_ulps_eq!(
-            clebsch_gordan(half_u32!(1/2), half_i32!(1/2), 
-                           half_u32!(1/2), half_i32!(-1/2), 
-                           half_u32!(1), half_i32!(0)), 
+            clebsch_gordan(hu32!(1/2), hi32!(1/2), 
+                           hu32!(1/2), hi32!(-1/2), 
+                           hu32!(1), hi32!(0)), 
             f64::sqrt(0.5)
         );
         assert_ulps_eq!(
-            clebsch_gordan(half_u32!(1/2), half_i32!(1/2), 
-                           half_u32!(1/2), half_i32!(-1/2), 
-                           half_u32!(0), half_i32!(0)), 
+            clebsch_gordan(hu32!(1/2), hi32!(1/2), 
+                           hu32!(1/2), hi32!(-1/2), 
+                           hu32!(0), hi32!(0)), 
             f64::sqrt(0.5)
         );
         assert_ulps_eq!(
-            clebsch_gordan(half_u32!(1/2), half_i32!(-1/2), 
-                           half_u32!(1/2), half_i32!(1/2), 
-                           half_u32!(1), half_i32!(0)), 
+            clebsch_gordan(hu32!(1/2), hi32!(-1/2), 
+                           hu32!(1/2), hi32!(1/2), 
+                           hu32!(1), hi32!(0)), 
             f64::sqrt(0.5)
         );
         assert_ulps_eq!(
-            clebsch_gordan(half_u32!(1/2), half_i32!(-1/2), 
-                           half_u32!(1/2), half_i32!(1/2), 
-                           half_u32!(0), half_i32!(0)), 
+            clebsch_gordan(hu32!(1/2), hi32!(-1/2), 
+                           hu32!(1/2), hi32!(1/2), 
+                           hu32!(0), hi32!(0)), 
             -f64::sqrt(0.5)
         );
         assert_ulps_eq!(
-            clebsch_gordan(half_u32!(5/2), half_i32!(3/2), 
-                           half_u32!(2), half_i32!(1), 
-                           half_u32!(5/2), half_i32!(5/2)), 
+            clebsch_gordan(hu32!(5/2), hi32!(3/2), 
+                           hu32!(2), hi32!(1), 
+                           hu32!(5/2), hi32!(5/2)), 
             -f64::sqrt(3. / 7.)
         );
         assert_ulps_eq!(
-            clebsch_gordan(half_u32!(5/2), half_i32!(3/2), 
-                           half_u32!(3/2), half_i32!(1/2), 
-                           half_u32!(3), half_i32!(2)), 
+            clebsch_gordan(hu32!(5/2), hi32!(3/2), 
+                           hu32!(3/2), hi32!(1/2), 
+                           hu32!(3), hi32!(2)), 
             f64::sqrt(1. / 12.)
         );
         assert_ulps_eq!(
-            clebsch_gordan(half_u32!(5/2), half_i32!(3/2), 
-                           half_u32!(3/2), half_i32!(1/2), 
-                           half_u32!(2), half_i32!(2)), 
+            clebsch_gordan(hu32!(5/2), hi32!(3/2), 
+                           hu32!(3/2), hi32!(1/2), 
+                           hu32!(2), hi32!(2)), 
             -f64::sqrt(8. / 21.)
         );
     }
@@ -524,38 +524,38 @@ mod tests {
     #[test]
     fn test_wigner6j() {
         assert_ulps_eq!(
-            wigner_6j(half_u32!(1), half_u32!(1), half_u32!(1), 
-                      half_u32!(1), half_u32!(1), half_u32!(1)), 
+            wigner_6j(hu32!(1), hu32!(1), hu32!(1), 
+                      hu32!(1), hu32!(1), hu32!(1)), 
             1. / 6.
         );
         assert_ulps_eq!(
-            wigner_6j(half_u32!(1), half_u32!(2), half_u32!(3), 
-                      half_u32!(3), half_u32!(2), half_u32!(1)), 
+            wigner_6j(hu32!(1), hu32!(2), hu32!(3), 
+                      hu32!(3), hu32!(2), hu32!(1)), 
             f64::sqrt(14.) / 35.
         );
         assert_ulps_eq!(
-            wigner_6j(half_u32!(3), half_u32!(3), half_u32!(3), 
-                      half_u32!(3), half_u32!(3), half_u32!(3)), 
+            wigner_6j(hu32!(3), hu32!(3), hu32!(3), 
+                      hu32!(3), hu32!(3), hu32!(3)), 
             -1. / 14.
         );
         assert_ulps_eq!(
-            wigner_6j(half_u32!(5), half_u32!(5), half_u32!(5), 
-                      half_u32!(5), half_u32!(5), half_u32!(5)), 
+            wigner_6j(hu32!(5), hu32!(5), hu32!(5), 
+                      hu32!(5), hu32!(5), hu32!(5)), 
             1. / 52.
         );
         assert_ulps_eq!(
-            wigner_6j(half_u32!(8), half_u32!(8), half_u32!(8), 
-                      half_u32!(8), half_u32!(8), half_u32!(8)), 
+            wigner_6j(hu32!(8), hu32!(8), hu32!(8), 
+                      hu32!(8), hu32!(8), hu32!(8)), 
             -0.01265208072315355
         );
         assert_ulps_eq!(
-            wigner_6j(half_u32!(64), half_u32!(10), half_u32!(64), 
-                      half_u32!(64), half_u32!(0), half_u32!(64)), 
+            wigner_6j(hu32!(64), hu32!(10), hu32!(64), 
+                      hu32!(64), hu32!(0), hu32!(64)), 
             1. / 129.
         );
         assert_ulps_eq!(
-            wigner_6j(half_u32!(1/2), half_u32!(1), half_u32!(1/2), 
-                      half_u32!(1/2), half_u32!(0), half_u32!(1/2)), 
+            wigner_6j(hu32!(1/2), hu32!(1), hu32!(1/2), 
+                      hu32!(1/2), hu32!(0), hu32!(1/2)), 
             0.5
         );
     }

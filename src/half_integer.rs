@@ -80,6 +80,12 @@ macro_rules! impl_half_integers {
                     self.doubled -= rhs.doubled;
                 }
             }
+
+            impl PartialEq<$underlying> for $name {
+                fn eq(&self, other: &$underlying) -> bool {
+                    2 * other == self.doubled
+                }
+            }
         )*
     };
 }
@@ -176,5 +182,7 @@ mod test {
         assert!(spin2.double_value() == 3);
 
         assert!((spin1 + spin2.into()).double_value() == 9);
+
+        assert!(spin1 == 3);
     }
 }

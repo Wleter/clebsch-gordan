@@ -2,9 +2,28 @@ macro_rules! impl_half_integers {
     ($($name:ident => $underlying:ty),*) => {
         $(
             #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
-            #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
             pub struct $name {
                 doubled: $underlying
+            }
+
+            #[cfg(feature = "serde")]
+            impl serde::Serialize for $name {
+                fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+                where
+                    S: serde::Serializer,
+                {
+                    serializer.serialize_f64(self.value())
+                }
+            }
+
+            #[cfg(feature = "serde")]
+            impl<'de> serde::Deserialize<'de> for $name {
+                fn deserialize<D>(deserializer: D) -> Result<$name, D::Error>
+                where
+                    D: serde::Deserializer<'de>,
+                {
+                    deserializer.deserialize_f64(HalfVisit).map($name::new)
+                }
             }
 
             impl $name {
@@ -158,6 +177,25 @@ macro_rules! hu32 {
     };
 }
 
+#[cfg(feature = "serde")]
+struct HalfVisit;
+
+#[cfg(feature = "serde")]
+impl<'de> serde::de::Visitor<'de> for HalfVisit {
+    type Value = f64;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str("Expecting f64")
+    }
+
+    fn visit_f64<E>(self, v: f64) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error, 
+    {
+        Ok(v)
+    }
+}
+
 #[cfg(test)]
 mod test {
     use crate::half_integer::{HalfI32, HalfU32};
@@ -192,7 +230,7 @@ mod test {
     fn test_serde() {
         let spin = HalfU32::new(1.5);
         let ser = serde_json::to_string(&spin).unwrap();
-        assert_eq!(ser, format!("{{\"doubled\":3}}"));
+        assert_eq!(ser, format!("1.5"));
         
         let deser: HalfU32 = serde_json::from_str(&ser).unwrap();
         assert_eq!(spin, deser);

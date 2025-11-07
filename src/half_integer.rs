@@ -2,6 +2,7 @@ macro_rules! impl_half_integers {
     ($($name:ident => $underlying:ty),*) => {
         $(
             #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+            #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
             pub struct $name {
                 doubled: $underlying
             }
@@ -184,5 +185,16 @@ mod test {
         assert!((spin1 + spin2.into()).double_value() == 9);
 
         assert!(spin1 == 3);
+    }
+
+    #[test]
+    #[cfg(feature = "serde")]
+    fn test_serde() {
+        let spin = HalfU32::new(1.5);
+        let ser = serde_json::to_string(&spin).unwrap();
+        assert_eq!(ser, format!("{{\"doubled\":3}}"));
+        
+        let deser: HalfU32 = serde_json::from_str(&ser).unwrap();
+        assert_eq!(spin, deser);
     }
 }

@@ -40,6 +40,10 @@ pub fn clear_wigner_3j_cache() {
     CACHED_WIGNER_3J.lock().clear();
 }
 
+pub fn clear_wigner_6j_cache() {
+    CACHED_WIGNER_6J.lock().clear();
+}
+
 /// Compute the Wigner 3j coefficient for the given `dj1`, `dj2`, `dj3`, `dm1`,
 /// `dm2`, `dm3`.
 pub fn wigner_3j(j1: HalfU32, j2: HalfU32, j3: HalfU32, m1: HalfI32, m2: HalfI32, m3: HalfI32) -> f64 {
@@ -219,6 +223,67 @@ pub fn wigner_6j(j1: HalfU32, j2: HalfU32, j3: HalfU32, j4: HalfU32, j5: HalfU32
 
     result
 }
+/// Compute the Wigner 9j coefficient for the given `j1`, `j2`, `j3`, `j4`,
+/// `j5`, `j6`, `j7`, `j8`, `j9`.
+pub fn wigner_9j(j123: [HalfU32; 3], j456: [HalfU32; 3], j789: [HalfU32; 3]) -> f64 {
+    let ([j1, j2, j3, j4, j5, j6, j7, j8, j9], sign) = reorder9j(j123, j456, j789, 1.);
+
+    let dj1 = j1.double_value();
+    let dj2 = j2.double_value();
+    let dj3 = j3.double_value();
+    let dj4 = j4.double_value();
+    let dj5 = j5.double_value();
+    let dj6 = j6.double_value();
+    let dj7 = j7.double_value();
+    let dj8 = j8.double_value();
+    let dj9 = j9.double_value();
+
+    let sign = sign.powi((dj1 + dj2 + dj3 + dj4 + dj5 + dj6 + dj7 + dj8 + dj9) as i32 / 2);
+
+    if !triangle_condition(dj1, dj4, dj7)
+        || !triangle_condition(dj2, dj5, dj8)
+        || !triangle_condition(dj3, dj6, dj9)
+        || !triangle_condition(dj1, dj2, dj3)
+        || !triangle_condition(dj4, dj5, dj6)
+        || !triangle_condition(dj7, dj8, dj9) 
+    {
+        return 0.
+    }
+
+    if dj9 == 0 {
+        return (-1f64).powi((dj2 + dj3 + dj4 + dj7) as i32/ 2) 
+            / f64::sqrt(((dj3 + 1) * (dj7 + 1)) as f64) 
+            * wigner_6j(j1, j2, j3, j5, j4, j7)
+    }
+
+    let lower = dj1.abs_diff(dj9).max(dj2.abs_diff(dj6)).max(dj4.abs_diff(dj8));
+    let upper = (dj1 + dj9).min(dj2 + dj6).min(dj4 + dj8);
+
+    let mut result = 0.;
+    for dk in (lower..=upper).step_by(2) {
+        let k = HalfU32::from_doubled(dk);
+        let prefactor = (-1f64).powi(dk as i32) * (dk + 1) as f64;
+
+        let wigner1 = wigner_6j(j1, j4, j7, j8, j9, k);
+        if wigner1 == 0. {
+            continue;
+        }
+
+        let wigner2 = wigner_6j(j2, j5, j8, j4, k, j6);
+        if wigner2 == 0. {
+            continue;
+        }
+
+        let wigner3 = wigner_6j(j3, j6, j9, k, j1, j2);
+        if wigner3 == 0. {
+            continue;
+        }
+
+        result += prefactor * wigner1 * wigner2 * wigner3
+    }
+
+    sign * result
+}
 
 /// check the triangle condition on j1, j2, j3, i.e. `|j1 - j2| <= j3 <= j1 + j2`
 fn triangle_condition(dj1: u32, dj2: u32, dj3: u32) -> bool {
@@ -255,6 +320,27 @@ fn reorder6j(b1: u32, b2: u32, b3: u32, a1: u32, a2: u32, a3: u32, a4: u32) -> (
         reorder6j(b1, b2, b3, a1, a2, a4, a3)
     } else {
         return (b1, b2, b3, a1, a2, a3, a4)
+    }
+}
+
+#[inline]
+fn j3_min(j123: [HalfU32; 3]) -> HalfU32 {
+    j123[0].min(j123[1]).min(j123[2])
+}
+
+// reorders for last element to be smallest,
+// if caching then we have remaining reordering todo!
+fn reorder9j(j123: [HalfU32; 3], j456: [HalfU32; 3], j789: [HalfU32; 3], sign: f64) -> ([HalfU32; 9], f64) {
+    if j3_min(j123) < j3_min(j456) {
+        reorder9j(j456, j123, j789, -sign)
+    } else if j3_min(j456) < j3_min(j789) {
+        reorder9j(j123, j789, j456, -sign)
+    } else if j789[0] < j789[1] {
+        reorder9j([j123[1], j123[0], j123[2]], [j456[1], j456[0], j456[2]], [j789[1], j789[0], j789[2]], -sign)
+    } else if j789[1] < j789[2] {
+        reorder9j([j123[0], j123[2], j123[1]], [j456[0], j456[2], j456[1]], [j789[0], j789[2], j789[1]], -sign)
+    } else {
+        ([j123[0], j123[1], j123[2], j456[0], j456[1], j456[2], j789[0], j789[1], j789[2]], sign)
     }
 }
 
@@ -557,6 +643,34 @@ mod tests {
             wigner_6j(hu32!(1/2), hu32!(1), hu32!(1/2), 
                       hu32!(1/2), hu32!(0), hu32!(1/2)), 
             0.5
+        );
+    }
+
+    #[test]
+    fn test_wigner9j() {
+        assert_ulps_eq!(
+            wigner_9j([hu32!(5), hu32!(1/2), hu32!(9/2)], 
+                      [hu32!(5), hu32!(1/2), hu32!(11/2)],
+                      [hu32!(9), hu32!(1), hu32!(10)]), 
+            2.577867603707275e-3
+        );
+        assert_ulps_eq!(
+            wigner_9j([hu32!(100), hu32!(80), hu32!(50)], 
+                      [hu32!(50), hu32!(100), hu32!(70)],
+                      [hu32!(60), hu32!(50), hu32!(100)]), 
+            1.055977979475188e-7
+        );
+        assert_ulps_eq!(
+            wigner_9j([hu32!(0), hu32!(1), hu32!(1)], 
+                      [hu32!(1), hu32!(1), hu32!(1)],
+                      [hu32!(1), hu32!(1), hu32!(1)]), 
+            1. / 18.
+        );
+        assert_ulps_eq!(
+            wigner_9j([hu32!(1), hu32!(0), hu32!(1)], 
+                      [hu32!(1), hu32!(1/2), hu32!(1/2)],
+                      [hu32!(1), hu32!(1/2), hu32!(1/2)]), 
+            (1. / 3.) * (1f64 / 6.).sqrt()
         );
     }
 }
